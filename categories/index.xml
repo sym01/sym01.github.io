@@ -10,5 +10,23 @@
 	<atom:link href="https://sym01.com/categories/index.xml" rel="self" type="application/rss+xml" />
     
     
+    <item>
+      <title>Codereview</title>
+      <link>https://sym01.com/categories/codereview/</link>
+      <pubDate>Mon, 04 Mar 2019 17:12:01 +0800</pubDate>
+      
+      <guid>https://sym01.com/categories/codereview/</guid>
+      <description></description>
+    </item>
+    
+    <item>
+      <title>Vulns</title>
+      <link>https://sym01.com/categories/vulns/</link>
+      <pubDate>Mon, 04 Mar 2019 17:12:01 +0800</pubDate>
+      
+      <guid>https://sym01.com/categories/vulns/</guid>
+      <description></description>
+    </item>
+    
   </channel>
 </rss>

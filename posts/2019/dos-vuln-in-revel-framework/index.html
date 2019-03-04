@@ -1,0 +1,126 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Revel框架的一处DoS问题 // SYM01&#39;s BLOG</title>
+    <meta charset="utf-8" />
+    <meta name="generator" content="Hugo" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="SYM01" />
+    <meta name="description" content="" />
+    
+    <link rel="stylesheet" href="https://sym01.com/css/main.min.3e5e6ecad19da060bbf59e5d214703acd1f8f44a930ab723e82a7f66a3bf7bce.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <a href="/"><img class="app-header-avatar" src="/avatar2.svg" /></a>
+      <h1>SYM01&#39;s BLOG</h1>
+      <p>Stay Young, Stay Naive.</p>
+      <div class="app-header-social">
+        
+          <a target="_blank" href="https://github.com/SYM01"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-github"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+        
+      </div>
+    </header>
+    <main class="app-container">
+      
+  <article class="post">
+    <header class="post-header">
+      <h1 class ="post-title">Revel框架的一处DoS问题</h1>
+      <div class="post-meta">
+        <div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Mar 4, 2019
+        </div>
+        <div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          1 min read
+        </div><div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tag"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg>
+          <a class="tag" href="https://sym01.com/tags/golang/">Golang</a><a class="tag" href="https://sym01.com/tags/vuln/">Vuln</a><a class="tag" href="https://sym01.com/tags/dos/">Dos</a><a class="tag" href="https://sym01.com/tags/revel/">Revel</a></div></div>
+    </header>
+    <div class="post-content">
+      
+
+<h2 id="0x00-前言">0x00 前言</h2>
+
+<p><a href="https://revel.github.io/">Revel</a> 是一个基于<code>Golang</code>的灵活的Web框架，大量应用了<code>Golang</code>的反射特性，使得其可以类似于<code>Django</code>那样快速地建立一个网站。前段时间在翻阅<code>Revel</code>框架的文档时，发现其某个特性可能存在DoS问题，故对该特性的相关源码进行了审计，发现了一处非常容易利用的DoS问题，利用单个请求即可打挂<code>Revel</code>的服务器。</p>
+
+<p>好在该DoS的利用是有条件的，当且仅当网站使用了<code>Revel</code>框架获取<a href="https://revel.github.io/manual/parameters.html#slices"><code>slice</code>类型的参数</a>时才会触发。</p>
+
+<h2 id="0x01-分析">0x01 分析</h2>
+
+<p><code>Revel</code>框架为开发者提供了许多有用的特性，其中一个特性允许开发者直接获取数组类型的数据。如当用户访问<code>http://example.com/?keys[]=1&amp;keys[]=2</code>时，开发者可直接将<code>keys</code>参数视为<code>slice</code>类型（<code>Golang</code>中对数组的封装）。</p>
+
+<p>该特性在<code>Revel</code>中是通过反射+Binder实现的，其中专门<a href="https://github.com/revel/revel/blob/a3d7a7c23ca885cc5036d3641ede49ce4a14ee2e/binder.go#L210-L277">用于处理<code>slice</code>类型的函数</a>如下。</p>
+
+<pre><code class="language-golang">func bindSlice(params *Params, name string, typ reflect.Type) reflect.Value {
+	// Collect an array of slice elements with their indexes (and the max index).
+	maxIndex := -1
+	numNoIndex := 0
+	sliceValues := []sliceValue{}
+
+	// Factor out the common slice logic (between form values and files).
+	processElement := func(key string, vals []string, files []*multipart.FileHeader) {
+        // ...
+        // 省略相关用于处理单个slice元素的内容
+	}
+
+	for key, vals := range params.Values {
+		processElement(key, vals, nil)
+	}
+	for key, fileHeaders := range params.Files {
+		processElement(key, nil, fileHeaders)
+	}
+
+	resultArray := reflect.MakeSlice(typ, maxIndex+1, maxIndex+1+numNoIndex)
+	for _, sv := range sliceValues {
+		if sv.index != -1 {
+			resultArray.Index(sv.index).Set(sv.value)
+		} else {
+			resultArray = reflect.Append(resultArray, sv.value)
+		}
+	}
+
+	return resultArray
+}
+</code></pre>
+
+<p>该函数的的作用主要用于解析数组类型的参数，进行类型转换并确定<code>slice</code>的最大下标<code>maxIndex</code>，最终申请一个足够大的<code>slice</code>来容纳这些内容。</p>
+
+<p>其中，<code>maxIndex</code>是由最大数组下标决定的，且没有大小限制。也就是说此处只要<code>maxIndex</code>足够大，那么<code>Revel</code>自动调用的<code>reflect.MakeSlice()</code>所申请的内存空间可能会超过实体内存，触发<code>OOM Killer</code>或内存换页。</p>
+
+<p>由于<code>processElement()</code>函数中会自动解析传入参数的下标信息，<code>maxIndex</code>的值也变得容易控制，只需访问类似于下面的网址，即可制造一个足够大的<code>maxIndex</code>。</p>
+
+<pre><code class="language-txt">https://example.com/?keys[1234567890]=1
+</code></pre>
+
+<p>访问上述网址后，服务器CPU和内存使用率将会迅速飙升，如图所示，最终导致<code>Revel</code>进程结束。</p>
+
+<p><img src="./htop.png" alt="htop" /></p>
+
+<h2 id="0x02-利用条件">0x02 利用条件</h2>
+
+<p>一般情况下，<code>bindSlice</code>不会被自动调用，当且仅当<code>controller</code>的代码中获取了<code>slice</code>类型的参数时，该漏洞才能利用，如下面的两种情况。</p>
+
+<pre><code class="language-golang">func (c App) Test1(name []string) revel.Result {
+	return c.Render(name)
+}
+</code></pre>
+
+<pre><code class="language-golang">func (c App) Test2() revel.Result {
+	var name []string
+	c.Params.Bind(&amp;name, &quot;name&quot;)
+	return c.Render(name)
+}
+</code></pre>
+
+<h2 id="0x03-总结">0x03 总结</h2>
+
+<p>当开发者利用<code>Revel</code>框架获取<code>slice</code>类型的数据时，攻击者只需发起一次请求，即可使相关Web服务宕机，危害不大不小。因此，如果网站中使用了<code>Revel</code>框架，又恰好用到了数组类型的参数，应当重新审视自己的业务，是否非得使用数组类型的参数。</p>
+
+    </div>
+  </article>
+
+    </main>
+  </body>
+</html>

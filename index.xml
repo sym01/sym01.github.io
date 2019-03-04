@@ -6,9 +6,23 @@
     <description>Recent content on SYM01&#39;s BLOG</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
+    <lastBuildDate>Mon, 04 Mar 2019 17:12:01 +0800</lastBuildDate>
     
 	<atom:link href="https://sym01.com/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Revel框架的一处DoS问题</title>
+      <link>https://sym01.com/posts/2019/dos-vuln-in-revel-framework/</link>
+      <pubDate>Mon, 04 Mar 2019 17:12:01 +0800</pubDate>
+      
+      <guid>https://sym01.com/posts/2019/dos-vuln-in-revel-framework/</guid>
+      <description>0x00 前言 Revel 是一个基于Golang的灵活的Web框架，大量应用了Golang的反射特性，使得其可以类似于Django那样快速地建立一个网站。前段时间在翻阅Revel框架的文档时，发现其某个特性可能存在DoS问题，故对该特性的相关源码进行了审计，发现了一处非常容易利用的DoS问题，利用单个请求即可打挂Revel的服务器。
+好在该DoS的利用是有条件的，当且仅当网站使用了Revel框架获取slice类型的参数时才会触发。
+0x01 分析 Revel框架为开发者提供了许多有用的特性，其中一个特性允许开发者直接获取数组类型的数据。如当用户访问http://example.com/?keys[]=1&amp;amp;keys[]=2时，开发者可直接将keys参数视为slice类型（Golang中对数组的封装）。
+该特性在Revel中是通过反射+Binder实现的，其中专门用于处理slice类型的函数如下。
+func bindSlice(params *Params, name string, typ reflect.Type) reflect.Value { // Collect an array of slice elements with their indexes (and the max index). maxIndex := -1 numNoIndex := 0 sliceValues := []sliceValue{} // Factor out the common slice logic (between form values and files). processElement := func(key string, vals []string, files []*multipart.FileHeader) { // ... // 省略相关用于处理单个slice元素的内容 } for key, vals := range params.</description>
+    </item>
     
   </channel>
 </rss>
