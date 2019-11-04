@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+  <head>
+    <title>iOS中利用Frida解密任意APP的流量 // SYM01&#39;s BLOG</title>
+    <meta charset="utf-8" />
+    <meta name="generator" content="Hugo" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="SYM01" />
+    <meta name="description" content="" />
+    <base href="https://sym01.com/" />
+    <link rel="stylesheet" href="https://sym01.com/css/main.min.3a6c1e211932ff2a91bb18724d744b74ff425e0efdda0159ed8d80b99e13e3d2.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <a href="/"><img class="app-header-avatar" src="./avatar.jpg" /></a>
+      <h1>SYM01&#39;s BLOG</h1>
+      <p>Stay Young, Stay Naive.</p>
+      <div class="app-header-social">
+        
+          <a target="_blank" href="https://github.com/SYM01"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-github"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+        
+      </div>
+    </header>
+    <main class="app-container">
+      
+  <article class="post">
+    <header class="post-header">
+      <h1 class ="post-title">iOS中利用Frida解密任意APP的流量</h1>
+      <div class="post-meta">
+        <div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          Nov 4, 2019
+        </div>
+        <div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          2 min read
+        </div><div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tag"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg>
+          <a class="tag" href="https://sym01.com/tags/frida/">Frida</a><a class="tag" href="https://sym01.com/tags/ios/">iOS</a></div></div>
+    </header>
+    <div class="post-content">
+      
+
+<h2 id="0x00-前言">0x00 前言</h2>
+
+<p>最近测试的APP里，越来越多的APP采用了加密流量的通信方式，即在原有的HTTP、HTTPS流量之上，又做了一层加密。</p>
+
+<p>要对这些加密过程进行逆向，无疑要耗费大量的工作量，时间可能不允许。因此，可采用一种Hook的方式，将加密前/解密后的流量截获下来。</p>
+
+<h2 id="0x01-原理">0x01 原理</h2>
+
+<p>通过加密流量与远端进行通信，势必会调用响应的加密、解密函数。因此，可通过Frida直接将未加密的流量Hook出来。</p>
+
+<p>然而这样只能查看未加密的流量，不能篡改里边的数据，显然不太使用。因此，我们需要允许用户在流量进行加密/解密时，篡改里边的内容。</p>
+
+<p>实现思路较为简单，如下所示：</p>
+
+<ol>
+<li>Hook加密函数，中断加密过程，将未加密的数据发送到本地搭建的一个服务器，并将HTTP代理设置为Burpsuite的代理</li>
+<li>本地搭建的服务器原封不动地返回请求数据</li>
+<li>Hook点收到服务器返回的数据后，利用服务器返回的数据替换原有数据，并恢复加密函数的执行过程</li>
+<li>重复1、2、3的步骤，Hook掉解密函数</li>
+</ol>
+
+<p>这样一来，Burpsuite就能够发挥其原有的作用，劫持未加密的流量，并对流量内容进行篡改了。</p>
+
+<h2 id="0x02-实现">0x02 实现</h2>
+
+<p>以某APP为例，首先起一个echo服务器线程，专门负责原封不动地返回客户端的请求数据；其次用Frida hook掉相关加解密函数，将未加密的流量通过Burpsuite代理发往echo服务器。相关脚本内容如下：</p>
+<div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># coding: utf-8</span>
+
+<span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+<span class="kn">from</span> <span class="nn">threading</span> <span class="kn">import</span> <span class="n">Thread</span>
+<span class="kn">from</span> <span class="nn">http.server</span> <span class="kn">import</span> <span class="n">HTTPServer</span><span class="p">,</span> <span class="n">BaseHTTPRequestHandler</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">frida</span>
+
+<span class="n">ECHO_PORT</span> <span class="o">=</span> <span class="mi">28080</span>
+<span class="n">BURP_PORT</span> <span class="o">=</span> <span class="mi">8080</span>
+
+<span class="k">class</span> <span class="nc">RequestHandler</span><span class="p">(</span><span class="n">BaseHTTPRequestHandler</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">do_REQUEST</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">content_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content-length&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_response</span><span class="p">(</span><span class="mi">200</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_headers</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">content_length</span><span class="p">))</span>
+
+    <span class="n">do_RESPONSE</span> <span class="o">=</span> <span class="n">do_REQUEST</span>
+
+<span class="k">def</span> <span class="nf">echo_server_thread</span><span class="p">():</span>
+    <span class="k">print</span><span class="p">(</span><span class="s1">&#39;start echo server at port {}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ECHO_PORT</span><span class="p">))</span>
+    <span class="n">server</span> <span class="o">=</span> <span class="n">HTTPServer</span><span class="p">((</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">ECHO_PORT</span><span class="p">),</span> <span class="n">RequestHandler</span><span class="p">)</span>
+    <span class="n">server</span><span class="o">.</span><span class="n">serve_forever</span><span class="p">()</span>
+
+<span class="c1"># start echo server first</span>
+<span class="n">t</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">echo_server_thread</span><span class="p">)</span>
+<span class="n">t</span><span class="o">.</span><span class="n">daemon</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+
+<span class="n">session</span> <span class="o">=</span> <span class="n">frida</span><span class="o">.</span><span class="n">get_usb_device</span><span class="p">()</span><span class="o">.</span><span class="n">attach</span><span class="p">(</span><span class="s1">&#39;平安普惠&#39;</span><span class="p">)</span>
+<span class="n">script</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">create_script</span><span class="p">(</span><span class="s1">&#39;&#39;&#39;
+</span><span class="s1">var reqMethod = ObjC.classes.PHNetworkAgent[&#39;- requestOperationWithHTTPMethod:requestSerializer:URLString:parameters:&#39;];
+</span><span class="s1">var respDecrypt = ObjC.classes.PHSecurityHelper[&#39;+ phUnSecurityAESWithAesKey:content:&#39;];
+</span><span class="s1">var NSString = ObjC.classes.NSString;
+</span><span class="s1">
+</span><span class="s1">Interceptor.attach(reqMethod.implementation, {
+</span><span class="s1">  onEnter: function (args) {
+</span><span class="s1">    var methodStr = new ObjC.Object(args[2]).toString();
+</span><span class="s1">    var urlStr = new ObjC.Object(args[4]).toString();
+</span><span class="s1">
+</span><span class="s1">    var param = new ObjC.Object(args[5]);
+</span><span class="s1">    var paramStr = param[&#39;- uxy_JSONString&#39;]().toString();
+</span><span class="s1">
+</span><span class="s1">    var data = {
+</span><span class="s1">      method: methodStr,
+</span><span class="s1">      url: urlStr,
+</span><span class="s1">      param: paramStr,
+</span><span class="s1">    };
+</span><span class="s1">
+</span><span class="s1">    send({type: &#39;REQ&#39;, data: data})
+</span><span class="s1">
+</span><span class="s1">    var op = recv(&#39;NEW_REQ&#39;, function(val) {
+</span><span class="s1">        var data = val.payload;
+</span><span class="s1">
+</span><span class="s1">        args[2] = NSString.stringWithString_(data.method);
+</span><span class="s1">        args[4] = NSString.stringWithString_(data.url);
+</span><span class="s1">        args[5] = NSString.stringWithString_(data.param)[&#39;+ __uxy_JSONObject&#39;]();
+</span><span class="s1">    });
+</span><span class="s1">    op.wait();
+</span><span class="s1">  }
+</span><span class="s1">});
+</span><span class="s1">
+</span><span class="s1">Interceptor.attach(respDecrypt.implementation, {
+</span><span class="s1">  onLeave: function (retval) {
+</span><span class="s1">    var resp = new ObjC.Object(retval);
+</span><span class="s1">    var data = resp.toString();
+</span><span class="s1">    send({type: &#39;RESP&#39;, data: data})
+</span><span class="s1">
+</span><span class="s1">    var op = recv(&#39;NEW_RESP&#39;, function(val) {
+</span><span class="s1">        var data = val.payload;
+</span><span class="s1">        var newRetval = NSString.stringWithString_(data);
+</span><span class="s1">        retval.replace(newRetval);
+</span><span class="s1">    });
+</span><span class="s1">    op.wait();
+</span><span class="s1">  }
+</span><span class="s1">});
+</span><span class="s1">&#39;&#39;&#39;</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">on_message</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;send&#39;</span><span class="p">:</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="s1">&#39;payload&#39;</span><span class="p">]</span>
+        <span class="n">_type</span><span class="p">,</span> <span class="n">data</span> <span class="o">=</span> <span class="n">payload</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">],</span> <span class="n">payload</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">_type</span> <span class="o">==</span> <span class="s1">&#39;REQ&#39;</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;REQUEST&#39;</span><span class="p">,</span> <span class="s1">&#39;http://127.0.0.1:{}/&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ECHO_PORT</span><span class="p">),</span>
+                                 <span class="n">proxies</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;http&#39;</span><span class="p">:</span> <span class="s1">&#39;http://127.0.0.1:{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">BURP_PORT</span><span class="p">)},</span>
+                                 <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;param&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span> <span class="n">headers</span><span class="o">=</span><span class="p">{</span>
+                                    <span class="s1">&#39;REQ_METHOD&#39;</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;method&#39;</span><span class="p">],</span>
+                                    <span class="s1">&#39;REQ_URL&#39;</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;url&#39;</span><span class="p">],</span>
+                                <span class="p">})</span>
+            <span class="n">new_data</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;REQ_METHOD&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;method&#39;</span><span class="p">]),</span>
+                <span class="s1">&#39;url&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;REQ_URL&#39;</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;url&#39;</span><span class="p">]),</span>
+                <span class="s1">&#39;param&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">text</span>
+            <span class="p">}</span>
+            <span class="n">script</span><span class="o">.</span><span class="n">post</span><span class="p">({</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;NEW_REQ&#39;</span><span class="p">,</span> <span class="s1">&#39;payload&#39;</span><span class="p">:</span> <span class="n">new_data</span><span class="p">})</span>
+
+        <span class="k">elif</span> <span class="n">_type</span> <span class="o">==</span> <span class="s1">&#39;RESP&#39;</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;RESPONSE&#39;</span><span class="p">,</span> <span class="s1">&#39;http://127.0.0.1:{}/&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ECHO_PORT</span><span class="p">),</span>
+                                 <span class="n">proxies</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;http&#39;</span><span class="p">:</span> <span class="s1">&#39;http://127.0.0.1:{}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">BURP_PORT</span><span class="p">)},</span>
+                                 <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+
+            <span class="n">script</span><span class="o">.</span><span class="n">post</span><span class="p">({</span><span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="s1">&#39;NEW_RESP&#39;</span><span class="p">,</span> <span class="s1">&#39;payload&#39;</span><span class="p">:</span> <span class="n">r</span><span class="o">.</span><span class="n">text</span><span class="p">})</span>
+
+
+<span class="n">script</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s1">&#39;message&#39;</span><span class="p">,</span> <span class="n">on_message</span><span class="p">)</span>
+<span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
+
+<span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">read</span><span class="p">()</span></code></pre></div>
+<h2 id="0x03-总结">0x03 总结</h2>
+
+<p>套用上面的模板，可以快速地对加密流量的APP进行测试。然而实际应用上的难点在于找到相关加解密的函数，对于Objective-C这类没有明显调用关系的APP更甚。</p>
+
+    </div>
+  </article>
+
+    </main>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-111333897-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'UA-111333897-1');
+    </script>
+    </body>
+</html>

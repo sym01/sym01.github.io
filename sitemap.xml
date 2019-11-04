@@ -3,67 +3,83 @@
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   
   <url>
-    <loc>https://sym01.com/posts/2019/dos-vuln-in-revel-framework/</loc>
-    <lastmod>2019-03-04T17:12:01+08:00</lastmod>
+    <loc>https://sym01.com/categories/</loc>
+    <lastmod>2019-11-04T19:04:29+08:00</lastmod>
   </url>
   
   <url>
-    <loc>https://sym01.com/categories/</loc>
-    <priority>0</priority>
+    <loc>https://sym01.com/tags/frida/</loc>
+    <lastmod>2019-11-04T19:04:29+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://sym01.com/tags/ios/</loc>
+    <lastmod>2019-11-04T19:04:29+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://sym01.com/posts/2019/ios-debug-encrypted-traffic-with-frida/</loc>
+    <lastmod>2019-11-04T19:04:29+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://sym01.com/categories/pentest/</loc>
+    <lastmod>2019-11-04T19:04:29+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://sym01.com/posts/</loc>
+    <lastmod>2019-11-04T19:04:29+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://sym01.com/categories/re/</loc>
+    <lastmod>2019-11-04T19:04:29+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://sym01.com/</loc>
+    <lastmod>2019-11-04T19:04:29+08:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://sym01.com/tags/</loc>
+    <lastmod>2019-11-04T19:04:29+08:00</lastmod>
   </url>
   
   <url>
     <loc>https://sym01.com/categories/codereview/</loc>
     <lastmod>2019-03-04T17:12:01+08:00</lastmod>
-    <priority>0</priority>
   </url>
   
   <url>
     <loc>https://sym01.com/tags/dos/</loc>
     <lastmod>2019-03-04T17:12:01+08:00</lastmod>
-    <priority>0</priority>
   </url>
   
   <url>
     <loc>https://sym01.com/tags/golang/</loc>
     <lastmod>2019-03-04T17:12:01+08:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>https://sym01.com/posts/</loc>
-    <lastmod>2019-03-04T17:12:01+08:00</lastmod>
-    <priority>0</priority>
   </url>
   
   <url>
     <loc>https://sym01.com/tags/revel/</loc>
     <lastmod>2019-03-04T17:12:01+08:00</lastmod>
-    <priority>0</priority>
   </url>
   
   <url>
-    <loc>https://sym01.com/</loc>
+    <loc>https://sym01.com/posts/2019/dos-vuln-in-revel-framework/</loc>
     <lastmod>2019-03-04T17:12:01+08:00</lastmod>
-    <priority>0</priority>
-  </url>
-  
-  <url>
-    <loc>https://sym01.com/tags/</loc>
-    <lastmod>2019-03-04T17:12:01+08:00</lastmod>
-    <priority>0</priority>
   </url>
   
   <url>
     <loc>https://sym01.com/tags/vuln/</loc>
     <lastmod>2019-03-04T17:12:01+08:00</lastmod>
-    <priority>0</priority>
   </url>
   
   <url>
     <loc>https://sym01.com/categories/vulns/</loc>
     <lastmod>2019-03-04T17:12:01+08:00</lastmod>
-    <priority>0</priority>
   </url>
   
 </urlset>

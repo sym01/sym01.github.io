@@ -7,19 +7,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="author" content="SYM01" />
     <meta name="description" content="" />
-    
-    <link rel="stylesheet" href="https://sym01.com/css/main.min.6f159e00e40454d7a0c05122f688d5ecc4bf8254c36cae3ecd8201d98719fd62.css" />
+    <base href="https://sym01.com/" />
+    <link rel="stylesheet" href="https://sym01.com/css/main.min.3a6c1e211932ff2a91bb18724d744b74ff425e0efdda0159ed8d80b99e13e3d2.css" />
   </head>
   <body>
     <header class="app-header">
-      <a href="/"><img class="app-header-avatar" src="/avatar2.svg" /></a>
+      <a href="/"><img class="app-header-avatar" src="./avatar.jpg" /></a>
       <h1>SYM01&#39;s BLOG</h1>
       <p>Stay Young, Stay Naive.</p>
       <div class="app-header-social">
+        
           <a target="_blank" href="https://github.com/SYM01"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-github"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+        
       </div>
     </header>
     <main class="app-container">
+      
   <article class="post">
     <header class="post-header">
       <h1 class ="post-title">Revel框架的一处DoS问题</h1>
@@ -49,48 +52,42 @@
 <p><code>Revel</code>框架为开发者提供了许多有用的特性，其中一个特性允许开发者直接获取数组类型的数据。如当用户访问<code>http://example.com/?keys[]=1&amp;keys[]=2</code>时，开发者可直接将<code>keys</code>参数视为<code>slice</code>类型（<code>Golang</code>中对数组的封装）。</p>
 
 <p>该特性在<code>Revel</code>中是通过反射+Binder实现的，其中专门<a href="https://github.com/revel/revel/blob/a3d7a7c23ca885cc5036d3641ede49ce4a14ee2e/binder.go#L210-L277">用于处理<code>slice</code>类型的函数</a>如下。</p>
+<div class="highlight"><pre class="chroma"><code class="language-golang" data-lang="golang"><span class="kd">func</span> <span class="nf">bindSlice</span><span class="p">(</span><span class="nx">params</span> <span class="o">*</span><span class="nx">Params</span><span class="p">,</span> <span class="nx">name</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">typ</span> <span class="nx">reflect</span><span class="p">.</span><span class="nx">Type</span><span class="p">)</span> <span class="nx">reflect</span><span class="p">.</span><span class="nx">Value</span> <span class="p">{</span>
+	<span class="c1">// Collect an array of slice elements with their indexes (and the max index).
+</span><span class="c1"></span>	<span class="nx">maxIndex</span> <span class="o">:=</span> <span class="o">-</span><span class="mi">1</span>
+	<span class="nx">numNoIndex</span> <span class="o">:=</span> <span class="mi">0</span>
+	<span class="nx">sliceValues</span> <span class="o">:=</span> <span class="p">[]</span><span class="nx">sliceValue</span><span class="p">{}</span>
 
-<pre><code class="language-golang">func bindSlice(params *Params, name string, typ reflect.Type) reflect.Value {
-	// Collect an array of slice elements with their indexes (and the max index).
-	maxIndex := -1
-	numNoIndex := 0
-	sliceValues := []sliceValue{}
+	<span class="c1">// Factor out the common slice logic (between form values and files).
+</span><span class="c1"></span>	<span class="nx">processElement</span> <span class="o">:=</span> <span class="kd">func</span><span class="p">(</span><span class="nx">key</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">vals</span> <span class="p">[]</span><span class="kt">string</span><span class="p">,</span> <span class="nx">files</span> <span class="p">[]</span><span class="o">*</span><span class="nx">multipart</span><span class="p">.</span><span class="nx">FileHeader</span><span class="p">)</span> <span class="p">{</span>
+        <span class="c1">// ...
+</span><span class="c1"></span>        <span class="c1">// 省略相关用于处理单个slice元素的内容
+</span><span class="c1"></span>	<span class="p">}</span>
 
-	// Factor out the common slice logic (between form values and files).
-	processElement := func(key string, vals []string, files []*multipart.FileHeader) {
-        // ...
-        // 省略相关用于处理单个slice元素的内容
-	}
+	<span class="k">for</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">vals</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">params</span><span class="p">.</span><span class="nx">Values</span> <span class="p">{</span>
+		<span class="nf">processElement</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="nx">vals</span><span class="p">,</span> <span class="kc">nil</span><span class="p">)</span>
+	<span class="p">}</span>
+	<span class="k">for</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">fileHeaders</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">params</span><span class="p">.</span><span class="nx">Files</span> <span class="p">{</span>
+		<span class="nf">processElement</span><span class="p">(</span><span class="nx">key</span><span class="p">,</span> <span class="kc">nil</span><span class="p">,</span> <span class="nx">fileHeaders</span><span class="p">)</span>
+	<span class="p">}</span>
 
-	for key, vals := range params.Values {
-		processElement(key, vals, nil)
-	}
-	for key, fileHeaders := range params.Files {
-		processElement(key, nil, fileHeaders)
-	}
+	<span class="nx">resultArray</span> <span class="o">:=</span> <span class="nx">reflect</span><span class="p">.</span><span class="nf">MakeSlice</span><span class="p">(</span><span class="nx">typ</span><span class="p">,</span> <span class="nx">maxIndex</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="nx">maxIndex</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="nx">numNoIndex</span><span class="p">)</span>
+	<span class="k">for</span> <span class="nx">_</span><span class="p">,</span> <span class="nx">sv</span> <span class="o">:=</span> <span class="k">range</span> <span class="nx">sliceValues</span> <span class="p">{</span>
+		<span class="k">if</span> <span class="nx">sv</span><span class="p">.</span><span class="nx">index</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="p">{</span>
+			<span class="nx">resultArray</span><span class="p">.</span><span class="nf">Index</span><span class="p">(</span><span class="nx">sv</span><span class="p">.</span><span class="nx">index</span><span class="p">).</span><span class="nf">Set</span><span class="p">(</span><span class="nx">sv</span><span class="p">.</span><span class="nx">value</span><span class="p">)</span>
+		<span class="p">}</span> <span class="k">else</span> <span class="p">{</span>
+			<span class="nx">resultArray</span> <span class="p">=</span> <span class="nx">reflect</span><span class="p">.</span><span class="nf">Append</span><span class="p">(</span><span class="nx">resultArray</span><span class="p">,</span> <span class="nx">sv</span><span class="p">.</span><span class="nx">value</span><span class="p">)</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
 
-	resultArray := reflect.MakeSlice(typ, maxIndex+1, maxIndex+1+numNoIndex)
-	for _, sv := range sliceValues {
-		if sv.index != -1 {
-			resultArray.Index(sv.index).Set(sv.value)
-		} else {
-			resultArray = reflect.Append(resultArray, sv.value)
-		}
-	}
-
-	return resultArray
-}
-</code></pre>
-
+	<span class="k">return</span> <span class="nx">resultArray</span>
+<span class="p">}</span></code></pre></div>
 <p>该函数的的作用主要用于解析数组类型的参数，进行类型转换并确定<code>slice</code>的最大下标<code>maxIndex</code>，最终申请一个足够大的<code>slice</code>来容纳这些内容。</p>
 
 <p>其中，<code>maxIndex</code>是由最大数组下标决定的，且没有大小限制。也就是说此处只要<code>maxIndex</code>足够大，那么<code>Revel</code>自动调用的<code>reflect.MakeSlice()</code>所申请的内存空间可能会超过实体内存，触发<code>OOM Killer</code>或内存换页。</p>
 
 <p>由于<code>processElement()</code>函数中会自动解析传入参数的下标信息，<code>maxIndex</code>的值也变得容易控制，只需访问类似于下面的网址，即可制造一个足够大的<code>maxIndex</code>。</p>
-
-<pre><code class="language-txt">https://example.com/?keys[1234567890]=1
-</code></pre>
-
+<div class="highlight"><pre class="chroma"><code class="language-txt" data-lang="txt">https://example.com/?keys[1234567890]=1</code></pre></div>
 <p>访问上述网址后，服务器CPU和内存使用率将会迅速飙升，如图所示，最终导致<code>Revel</code>进程结束。</p>
 
 <p><img src="./htop.png" alt="htop" /></p>
@@ -98,19 +95,13 @@
 <h2 id="0x02-利用条件">0x02 利用条件</h2>
 
 <p>一般情况下，<code>bindSlice</code>不会被自动调用，当且仅当<code>controller</code>的代码中获取了<code>slice</code>类型的参数时，该漏洞才能利用，如下面的两种情况。</p>
-
-<pre><code class="language-golang">func (c App) Test1(name []string) revel.Result {
-	return c.Render(name)
-}
-</code></pre>
-
-<pre><code class="language-golang">func (c App) Test2() revel.Result {
-	var name []string
-	c.Params.Bind(&amp;name, &quot;name&quot;)
-	return c.Render(name)
-}
-</code></pre>
-
+<div class="highlight"><pre class="chroma"><code class="language-golang" data-lang="golang"><span class="kd">func</span> <span class="p">(</span><span class="nx">c</span> <span class="nx">App</span><span class="p">)</span> <span class="nf">Test1</span><span class="p">(</span><span class="nx">name</span> <span class="p">[]</span><span class="kt">string</span><span class="p">)</span> <span class="nx">revel</span><span class="p">.</span><span class="nx">Result</span> <span class="p">{</span>
+	<span class="k">return</span> <span class="nx">c</span><span class="p">.</span><span class="nf">Render</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span>
+<span class="p">}</span></code></pre></div><div class="highlight"><pre class="chroma"><code class="language-golang" data-lang="golang"><span class="kd">func</span> <span class="p">(</span><span class="nx">c</span> <span class="nx">App</span><span class="p">)</span> <span class="nf">Test2</span><span class="p">()</span> <span class="nx">revel</span><span class="p">.</span><span class="nx">Result</span> <span class="p">{</span>
+	<span class="kd">var</span> <span class="nx">name</span> <span class="p">[]</span><span class="kt">string</span>
+	<span class="nx">c</span><span class="p">.</span><span class="nx">Params</span><span class="p">.</span><span class="nf">Bind</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">name</span><span class="p">,</span> <span class="s">&#34;name&#34;</span><span class="p">)</span>
+	<span class="k">return</span> <span class="nx">c</span><span class="p">.</span><span class="nf">Render</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span>
+<span class="p">}</span></code></pre></div>
 <h2 id="0x03-总结">0x03 总结</h2>
 
 <p>当开发者利用<code>Revel</code>框架获取<code>slice</code>类型的数据时，攻击者只需发起一次请求，即可使相关Web服务宕机，危害不大不小。因此，如果网站中使用了<code>Revel</code>框架，又恰好用到了数组类型的参数，应当重新审视自己的业务，是否非得使用数组类型的参数。</p>
@@ -126,5 +117,5 @@
       gtag('js', new Date());
       gtag('config', 'UA-111333897-1');
     </script>
-  </body>
+    </body>
 </html>
