@@ -24,17 +24,30 @@
     <div class="post-content">
       
 <div class="gcse-search" data-enableHistory="true" data-autoCompleteMaxCompletions="5"></div>
-<script async src="https://cse.google.com/cse.js?cx=003441716141977703810:ckmwqsx27in" id="search-box"></script>
+<script async src="https://cxse.google.com/cse.js?cx=003441716141977703810:ckmwqsx27in" id="search-box"></script>
 
 <script>
-document.getElementById("search-box").onerror = function() {
-    const p = this.parentNode;
-    p.removeChild(this);
-    const e = document.createElement('script');
-    e.id = 'bcs_js_snippet';
-    e.src = 'https://ui.customsearch.ai/api/ux/rendering-js?customConfig=ba87d651-ca1b-4413-b1c4-2719964ff68f&market=en-US&version=latest&q=&safeSearch=Off';
-    p.append(e);
-}
+    // switch engine if google if unavailabe.
+    const searchBox = document.getElementById("search-box");
+    let searchBoxState = 0;
+    const switchEngineTimeout = setTimeout(switchEngine, 3000)
+    searchBox.addEventListener('load', function() {
+        searchBoxState = 1;
+        clearTimeout(switchEngineTimeout);
+    })
+    searchBox.addEventListener('error', switchEngine)
+
+    function switchEngine() {
+        clearTimeout(switchEngineTimeout);
+        if (searchBoxState > 0) return;
+        const p = searchBox.parentNode;
+        p.removeChild(searchBox);
+        const e = document.createElement('script');
+        e.id = 'bcs_js_snippet';
+        e.src = 'https://ui.customsearch.ai/api/ux/rendering-js?customConfig=ba87d651-ca1b-4413-b1c4-2719964ff68f&market=en-US&version=latest&q=&safeSearch=Off';
+        p.append(e);
+        searchBoxState = 2;
+    }
 </script>
     </div>
   </article>

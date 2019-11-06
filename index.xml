@@ -17,7 +17,7 @@
       <pubDate>Wed, 06 Nov 2019 12:14:06 +0800</pubDate>
       
       <guid>https://sym01.com/search/</guid>
-      <description>    document.getElementById(&#34;search-box&#34;).onerror = function() { const p = this.parentNode; p.removeChild(this); const e = document.createElement(&#39;script&#39;); e.id = &#39;bcs_js_snippet&#39;; e.src = &#39;https://ui.customsearch.ai/api/ux/rendering-js?customConfig=ba87d651-ca1b-4413-b1c4-2719964ff68f&amp;market=en-US&amp;version=latest&amp;q=&amp;safeSearch=Off&#39;; p.append(e); } </description>
+      <description>    // switch engine if google if unavailabe. const searchBox = document.getElementById(&#34;search-box&#34;); let searchBoxState = 0; const switchEngineTimeout = setTimeout(switchEngine, 3000) searchBox.addEventListener(&#39;load&#39;, function() { searchBoxState = 1; clearTimeout(switchEngineTimeout); }) searchBox.addEventListener(&#39;error&#39;, switchEngine) function switchEngine() { clearTimeout(switchEngineTimeout); if (searchBoxState  0) return; const p = searchBox.parentNode; p.removeChild(searchBox); const e = document.createElement(&#39;script&#39;); e.id = &#39;bcs_js_snippet&#39;; e.src = &#39;https://ui.customsearch.ai/api/ux/rendering-js?customConfig=ba87d651-ca1b-4413-b1c4-2719964ff68f&amp;market=en-US&amp;version=latest&amp;q=&amp;safeSearch=Off&#39;; p.append(e); searchBoxState = 2; } </description>
     </item>
     
     <item>
