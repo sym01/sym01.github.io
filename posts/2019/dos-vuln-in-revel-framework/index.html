@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="author" content="SYM01" />
     <meta name="description" content="" />
-    <link rel="stylesheet" href="/css/main.min.93883b668818c187ff3f602abce15482c5b62300c188e97c8e93bbacdc262a2c.css" />
+    <link rel="stylesheet" href="/css/main.min.b73fbf13c263460a9b664bb1b2f5d1570dc20408d8dac29fdb0e90bc26483077.css" />
   </head>
   <body>
     <header class="app-header">
@@ -40,18 +40,11 @@
           <a class="tag" href="https://sym01.com/tags/golang/">Golang</a><a class="tag" href="https://sym01.com/tags/vuln/">Vuln</a><a class="tag" href="https://sym01.com/tags/dos/">Dos</a><a class="tag" href="https://sym01.com/tags/revel/">Revel</a></div></div>
     </header>
     <div class="post-content">
-      
-
-<h2 id="0x00-前言">0x00 前言</h2>
-
+      <h2 id="0x00-前言">0x00 前言</h2>
 <p><a href="https://revel.github.io/">Revel</a> 是一个基于<code>Golang</code>的灵活的Web框架，大量应用了<code>Golang</code>的反射特性，使得其可以类似于<code>Django</code>那样快速地建立一个网站。前段时间在翻阅<code>Revel</code>框架的文档时，发现其某个特性可能存在DoS问题，故对该特性的相关源码进行了审计，发现了一处非常容易利用的DoS问题，利用单个请求即可打挂<code>Revel</code>的服务器。</p>
-
 <p>好在该DoS的利用是有条件的，当且仅当网站使用了<code>Revel</code>框架获取<a href="https://revel.github.io/manual/parameters.html#slices"><code>slice</code>类型的参数</a>时才会触发。</p>
-
 <h2 id="0x01-分析">0x01 分析</h2>
-
 <p><code>Revel</code>框架为开发者提供了许多有用的特性，其中一个特性允许开发者直接获取数组类型的数据。如当用户访问<code>http://example.com/?keys[]=1&amp;keys[]=2</code>时，开发者可直接将<code>keys</code>参数视为<code>slice</code>类型（<code>Golang</code>中对数组的封装）。</p>
-
 <p>该特性在<code>Revel</code>中是通过反射+Binder实现的，其中专门<a href="https://github.com/revel/revel/blob/a3d7a7c23ca885cc5036d3641ede49ce4a14ee2e/binder.go#L210-L277">用于处理<code>slice</code>类型的函数</a>如下。</p>
 <div class="highlight"><pre class="chroma"><code class="language-golang" data-lang="golang"><span class="kd">func</span> <span class="nf">bindSlice</span><span class="p">(</span><span class="nx">params</span> <span class="o">*</span><span class="nx">Params</span><span class="p">,</span> <span class="nx">name</span> <span class="kt">string</span><span class="p">,</span> <span class="nx">typ</span> <span class="nx">reflect</span><span class="p">.</span><span class="nx">Type</span><span class="p">)</span> <span class="nx">reflect</span><span class="p">.</span><span class="nx">Value</span> <span class="p">{</span>
 	<span class="c1">// Collect an array of slice elements with their indexes (and the max index).
@@ -82,34 +75,36 @@
 	<span class="p">}</span>
 
 	<span class="k">return</span> <span class="nx">resultArray</span>
-<span class="p">}</span></code></pre></div>
-<p>该函数的的作用主要用于解析数组类型的参数，进行类型转换并确定<code>slice</code>的最大下标<code>maxIndex</code>，最终申请一个足够大的<code>slice</code>来容纳这些内容。</p>
-
+<span class="p">}</span>
+</code></pre></div><p>该函数的的作用主要用于解析数组类型的参数，进行类型转换并确定<code>slice</code>的最大下标<code>maxIndex</code>，最终申请一个足够大的<code>slice</code>来容纳这些内容。</p>
 <p>其中，<code>maxIndex</code>是由最大数组下标决定的，且没有大小限制。也就是说此处只要<code>maxIndex</code>足够大，那么<code>Revel</code>自动调用的<code>reflect.MakeSlice()</code>所申请的内存空间可能会超过实体内存，触发<code>OOM Killer</code>或内存换页。</p>
-
 <p>由于<code>processElement()</code>函数中会自动解析传入参数的下标信息，<code>maxIndex</code>的值也变得容易控制，只需访问类似于下面的网址，即可制造一个足够大的<code>maxIndex</code>。</p>
-<div class="highlight"><pre class="chroma"><code class="language-txt" data-lang="txt">https://example.com/?keys[1234567890]=1</code></pre></div>
-<p>访问上述网址后，服务器CPU和内存使用率将会迅速飙升，如图所示，最终导致<code>Revel</code>进程结束。</p>
-
-<p><img src="./htop.png" alt="htop" /></p>
-
+<div class="highlight"><pre class="chroma"><code class="language-txt" data-lang="txt">https://example.com/?keys[1234567890]=1
+</code></pre></div><p>访问上述网址后，服务器CPU和内存使用率将会迅速飙升，如图所示，最终导致<code>Revel</code>进程结束。</p>
+<p><img src="./htop.png" alt="htop"></p>
 <h2 id="0x02-利用条件">0x02 利用条件</h2>
-
 <p>一般情况下，<code>bindSlice</code>不会被自动调用，当且仅当<code>controller</code>的代码中获取了<code>slice</code>类型的参数时，该漏洞才能利用，如下面的两种情况。</p>
 <div class="highlight"><pre class="chroma"><code class="language-golang" data-lang="golang"><span class="kd">func</span> <span class="p">(</span><span class="nx">c</span> <span class="nx">App</span><span class="p">)</span> <span class="nf">Test1</span><span class="p">(</span><span class="nx">name</span> <span class="p">[]</span><span class="kt">string</span><span class="p">)</span> <span class="nx">revel</span><span class="p">.</span><span class="nx">Result</span> <span class="p">{</span>
 	<span class="k">return</span> <span class="nx">c</span><span class="p">.</span><span class="nf">Render</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span>
-<span class="p">}</span></code></pre></div><div class="highlight"><pre class="chroma"><code class="language-golang" data-lang="golang"><span class="kd">func</span> <span class="p">(</span><span class="nx">c</span> <span class="nx">App</span><span class="p">)</span> <span class="nf">Test2</span><span class="p">()</span> <span class="nx">revel</span><span class="p">.</span><span class="nx">Result</span> <span class="p">{</span>
+<span class="p">}</span>
+</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-golang" data-lang="golang"><span class="kd">func</span> <span class="p">(</span><span class="nx">c</span> <span class="nx">App</span><span class="p">)</span> <span class="nf">Test2</span><span class="p">()</span> <span class="nx">revel</span><span class="p">.</span><span class="nx">Result</span> <span class="p">{</span>
 	<span class="kd">var</span> <span class="nx">name</span> <span class="p">[]</span><span class="kt">string</span>
 	<span class="nx">c</span><span class="p">.</span><span class="nx">Params</span><span class="p">.</span><span class="nf">Bind</span><span class="p">(</span><span class="o">&amp;</span><span class="nx">name</span><span class="p">,</span> <span class="s">&#34;name&#34;</span><span class="p">)</span>
 	<span class="k">return</span> <span class="nx">c</span><span class="p">.</span><span class="nf">Render</span><span class="p">(</span><span class="nx">name</span><span class="p">)</span>
-<span class="p">}</span></code></pre></div>
-<h2 id="0x03-总结">0x03 总结</h2>
-
+<span class="p">}</span>
+</code></pre></div><h2 id="0x03-总结">0x03 总结</h2>
 <p>当开发者利用<code>Revel</code>框架获取<code>slice</code>类型的数据时，攻击者只需发起一次请求，即可使相关Web服务宕机，危害不大不小。因此，如果网站中使用了<code>Revel</code>框架，又恰好用到了数组类型的参数，应当重新审视自己的业务，是否非得使用数组类型的参数。</p>
 
     </div>
   </article>
-</main>
+  <script src="https://utteranc.es/client.js"
+        repo="SYM01/sym01.github.io"
+        issue-term="pathname"
+        theme="dark-blue"
+        crossorigin="anonymous"
+        async>
+  </script>
+  </main>
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-111333897-1"></script>
     <script>
       window.dataLayer = window.dataLayer || [];

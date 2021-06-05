@@ -1,0 +1,69 @@
+digraph finite_state_machine {
+	bgcolor="transparent";
+	rankdir=LR;
+	// size="8,10"
+	pad = "0.5";
+	// splines=polyline;
+
+	node [shape=point]; start;
+	node [shape=doublecircle width=1 fixedsize=false fontsize=10 pad=0]; NORMAL; TAG_END; ETAG_END;
+	node [shape=circle width=1 fixedsize=false fontsize=10 pad=0];
+	start -> NORMAL;
+	NORMAL -> NORMAL [ label="[^<]" ];
+	NORMAL -> LT_SIGN [ label="[<]" ];
+
+	// <xxx a=aaa> 这类标签
+	LT_SIGN -> TAG_NAME [ label="[\\w-]" ];
+	TAG_NAME -> TAG_NAME [ label="[\\w-]" ];
+	TAG_NAME -> TAG_END [ label="[>]" ];
+	TAG_NAME -> ATTR_GAP [ label="[^\\w->]" ];
+	ATTR_GAP -> ATTR_GAP [ label="[^\\w->]" ];
+	ATTR_GAP -> TAG_END [ label="[>]" ];
+	ATTR_GAP -> ATTR_NAME [ label="[\\w-]" ];
+
+	ATTR_NAME -> ATTR_NAME [ label="[\\w-]" ];
+	ATTR_NAME -> EQUAL_SIGN [ label="[=]" ];
+	ATTR_NAME -> ATTR_SPACE [ label="[\\s]"];
+	ATTR_NAME -> ATTR_GAP [ label="others"];
+	ATTR_SPACE -> ATTR_SPACE [ label="[\\s]"];
+	ATTR_SPACE -> ATTR_NAME [ label="[\\w-]"];
+	ATTR_SPACE -> TAG_END [ label="[>]"];
+	ATTR_SPACE -> ATTR_GAP [ label="others"];
+	ATTR_SPACE -> EQUAL_SIGN [ label="[=]" ];
+
+	EQUAL_SIGN -> ATTR_VAL [ label="[^\\s'\">]"];
+	EQUAL_SIGN -> VAL_SPACE [ label="[\\s]"];
+	EQUAL_SIGN -> ATTR_QVAL [ label="[\"\\'] ①"];
+	EQUAL_SIGN -> TAG_END [ label="[>]"];
+
+	VAL_SPACE -> VAL_SPACE [ label="[\\s]"];
+	VAL_SPACE -> ATTR_QVAL [ label="[\"\\'] ①"];
+	VAL_SPACE -> ATTR_VAL [ label="[^\\s>'\"]"];
+	ATTR_VAL -> ATTR_VAL [ label="[^\\s>]"];
+	ATTR_VAL -> TAG_END [ label="[>]"];
+	ATTR_VAL -> ATTR_GAP [ label="[\\s]"];
+	VAL_SPACE -> TAG_END [ label="[>]"];
+
+	ATTR_QVAL -> ATTR_QVAL [ label="not ①"];
+	ATTR_QVAL -> ATTR_GAP [ label="①"];
+
+
+	TAG_END -> NORMAL;
+
+
+	// </xxx> 这类标签
+	LT_SIGN -> ETAG_START [ label="[/]" ];
+	ETAG_START -> ETAG_NAME [ label="[\\w-]" ];
+	ETAG_START -> ERR_TAG [ label="others" ];
+	ETAG_NAME -> ETAG_NAME [ label="[\\w-]" ];
+	ETAG_NAME -> ETAG_END [ label="[>]" ];
+	ETAG_NAME -> ETAG_ATTR [ label="[^\\w->]" ];
+	ETAG_ATTR -> ETAG_END [ label="[>]" ];
+	ETAG_ATTR -> ETAG_ATTR [ label="[^>]" ];
+	ETAG_END -> NORMAL;
+
+	// 有问题的tag
+	LT_SIGN -> ERR_TAG [ label="others" ];
+	ERR_TAG -> ERR_TAG [ label="[^>]" ];
+	ERR_TAG -> NORMAL [ label="[>]" ];
+}

@@ -1,0 +1,143 @@
+<!doctype html>
+<html>
+  <head>
+    <title>构建一个安全可靠的 HTML 富文本过滤器 // SYM01&#39;s BLOG</title>
+    <meta charset="utf-8" />
+    <meta name="generator" content="Hugo" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="author" content="SYM01" />
+    <meta name="description" content="" />
+    <link rel="stylesheet" href="/css/main.min.b73fbf13c263460a9b664bb1b2f5d1570dc20408d8dac29fdb0e90bc26483077.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <a href="/"><img class="app-header-avatar" src="/avatar.jpg" /></a>
+      <h1>SYM01&#39;s BLOG</h1>
+      <p>Stay Young, Stay Naive.</p>
+      <div class="app-header-social">
+        <a target="_blank" href="https://github.com/SYM01"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-github"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg></a>
+        </div>
+    </header>
+    <main class="app-container">
+      <a class="search" href="/search/">
+        <svg t="1573031963095" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M1008.64 933.302857l-142.628571-142.628571A484.937143 484.937143 0 0 0 830.902857 146.285714 486.4 486.4 0 0 0 146.285714 146.285714a486.4 486.4 0 0 0 0 688.274286 489.325714 489.325714 0 0 0 341.577143 138.24 477.622857 477.622857 0 0 0 159.451429-27.062857 52.662857 52.662857 0 0 0 32.914285-68.022857 53.394286 53.394286 0 0 0-68.022857-32.914286 380.342857 380.342857 0 1 1 146.285715-89.965714 52.662857 52.662857 0 0 0 0 73.142857l177.737142 177.737143a53.394286 53.394286 0 0 0 37.302858 15.36 54.857143 54.857143 0 0 0 38.034285-15.36 54.125714 54.125714 0 0 0-2.925714-72.411429z" p-id="2846" fill="currentColor"></path></svg>
+        <span>搜索</span>
+      </a>
+      
+  <article class="post">
+    <header class="post-header">
+      <h1 class ="post-title">构建一个安全可靠的 HTML 富文本过滤器</h1>
+      <div class="post-meta">
+        <div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-calendar"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          2021-06-05 15:28
+        </div>
+        <div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-clock"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+          3 min read
+        </div><div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tag"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7" y2="7"></line></svg>
+          <a class="tag" href="https://sym01.com/tags/golang/">Golang</a><a class="tag" href="https://sym01.com/tags/html/">HTML</a><a class="tag" href="https://sym01.com/tags/filter/">Filter</a></div></div>
+    </header>
+    <div class="post-content">
+      <h2 id="0x00-前言">0x00 前言</h2>
+<p>许久以前接到一个需求，实现一个 HTML 富文本过滤的基础库。这个需求在其它语言实现中有许多久经考验的开源库，比如 NodeJS 有 <a href="https://github.com/cure53/DOMPurify">DOMPurify</a> ，但在 Go 中却异常尴尬，没有一个合适的、久经考验的 HTML 富文本过滤库。即使运气好找到了一个，也很难保证这个库是安全可靠的。思来想去，还是决定自己做一套性能扛得住、安全可靠的 Go 语言实现。</p>
+<p>其实<a href="https://github.com/SYM01/htmlsanitizer">相关代码</a>在 2020 年的时候就已经完成，但一直没有介绍其实现。好在最近开启的 <strong>躺平模式</strong> ，终于可以唠一唠这个东西是怎么实现的了。</p>
+<h2 id="0x01-原理">0x01 原理</h2>
+<p>咱们的目标是做一套性能扛得住、安全可靠的 Go 语言实现，其核心关键词是<code>性能</code>和<code>安全</code>：</p>
+<ul>
+<li>处于<code>安全</code>考虑，这里不能轻易地使用第三方的 DOM 解析库（毕竟也不知道靠不靠谱），最为稳妥的办法是做一个 HTML 的最小语义支持，不管输入如何，这个库只支持它认为正常的HTML 语法。</li>
+<li>要满足<code>性能</code>需求，算法复杂度不宜太高，最好是线性扫描</li>
+</ul>
+<p>所以最终决定使用 <a href="https://zh.wikipedia.org/wiki/%E7%A1%AE%E5%AE%9A%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E8%87%AA%E5%8A%A8%E6%9C%BA">DFA（确定有限状态自动机）</a> 从 0 构建一个 HTML 解析器。</p>
+<blockquote>
+<p>提到 DFA 有些同学可能会一头雾水，但提到正则表达式大家可能会相对熟悉一点。一个正则表达式，可能是一个 DFA，也有可能是一个 <a href="https://zh.wikipedia.org/wiki/%E9%9D%9E%E7%A1%AE%E5%AE%9A%E6%9C%89%E9%99%90%E7%8A%B6%E6%80%81%E8%87%AA%E5%8A%A8%E6%9C%BA">NFA（非确定有限状态自动机）</a>。比如</p>
+<ul>
+<li><code>a*ab</code> 这个正则表达式是一个 NFA</li>
+<li><code>a+b</code> 这个正则表达式则是一个 DFA</li>
+</ul>
+<p>很明显，上面两个正则表达式是等价的，NFA 是可以和 DFA 互转的。</p>
+</blockquote>
+<p>实现具体的 DFA 之前，我们需要先把整个状态机的实现勾勒出来，避免写代码的时候一头雾水。因此，我们按照设想的 “HTML 的最小语义支持”，画了下面这张状态图。</p>
+<!-- raw HTML omitted -->
+<figure class="inverted-figure"><a href="./html-filter.svg" target="_blank" rel="noreferrer noopener">
+    <img src="./html-filter.svg"
+         alt="HTML 解析过程的 DFA 源文件"/> </a><figcaption>
+            <p>HTML 解析过程的 DFA  <a href="./html-filter.gv">源文件</a></p>
+        </figcaption>
+</figure>
+
+<blockquote>
+<p>实际上 ETAG_END、TAG_END、NORMAL 是同一种状态，但为了实现方便，这里拆成了三种状态</p>
+</blockquote>
+<h2 id="0x02-实现">0x02 实现</h2>
+<h3 id="tags-and-attrs">安全标签+安全属性</h3>
+<p>状态机画出来后，还需要总结出所有的安全标签+安全属性。安全标签这个概念比较好理解，类似与 <code>&lt;script&gt;</code> 这种可以造成 XSS 的标签，肯定不属于安全标签。类似的，<code>onerror</code> 这类属性，肯定也不属于安全属性。最终我们梳理出了这么一份<a href="https://github.com/SYM01/htmlsanitizer/blob/ba260fbd09d62fb76ca02de647ec9e3aa4e3c545/tags.go#L134-L222">安全标签+安全属性列表</a>。</p>
+<p>在白名单中，我们还将安全属性的定义划分为两种，一种是普通属性（Attr），如 <code>colspan</code>, <code>rowspan</code> 这种人畜无害的属性；另外一种则是 URL 属性（URLAttr），如 <code>src</code>, <code>href</code> 这种在特定场景下有危害的场景。</p>
+<p>一个实际的例子如下，这种情况下是有 XSS 问题的。</p>
+<div class="highlight"><pre class="chroma"><code class="language-html" data-lang="html"><span class="p">&lt;</span><span class="nt">a</span> <span class="na">href</span><span class="o">=</span><span class="s">&#34;jav&amp;#x09;ascript:alert(&#39;XSS&#39;);&#34;</span><span class="p">&gt;</span>Click Me!<span class="p">&lt;/</span><span class="nt">a</span><span class="p">&gt;</span>
+</code></pre></div><p>因此，这类 URL 属性（URLAttr）需要进行特殊处理。 目前的默认的处理机制为，对这些 URL 进行解析，一旦解析失败，或者解析后的 schema 不为 http / https ，则认为存在问题，不予输出。</p>
+<h3 id="状态机实现">状态机实现</h3>
+<p>安全标签+安全属性列表、状态机就绪后，实现上就相对粗暴简单了，使用一个 swtich 语句完成状态间的转移即可，如下面的代码片段所示（<a href="https://github.com/SYM01/htmlsanitizer/blob/ba260fbd09d62fb76ca02de647ec9e3aa4e3c545/dfa.go#L141-L187">完整代码</a>）：</p>
+<div class="highlight"><pre class="chroma"><code class="language-go" data-lang="go"><span class="kd">func</span> <span class="p">(</span><span class="nx">w</span> <span class="o">*</span><span class="nx">writer</span><span class="p">)</span> <span class="nf">Write</span><span class="p">(</span><span class="nx">p</span> <span class="p">[]</span><span class="kt">byte</span><span class="p">)</span> <span class="p">(</span><span class="nx">n</span> <span class="kt">int</span><span class="p">,</span> <span class="nx">err</span> <span class="kt">error</span><span class="p">)</span> <span class="p">{</span>
+	<span class="c1">// reset data
+</span><span class="c1"></span>	<span class="nx">w</span><span class="p">.</span><span class="nx">data</span> <span class="p">=</span> <span class="nx">p</span>
+	<span class="nx">w</span><span class="p">.</span><span class="nx">off</span> <span class="p">=</span> <span class="mi">0</span>
+
+	<span class="k">for</span> <span class="nx">err</span> <span class="o">==</span> <span class="kc">nil</span> <span class="o">&amp;&amp;</span> <span class="nx">w</span><span class="p">.</span><span class="nx">off</span> <span class="p">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="nx">p</span><span class="p">)</span> <span class="p">{</span>
+		<span class="k">switch</span> <span class="nx">w</span><span class="p">.</span><span class="nx">state</span> <span class="p">{</span>
+		<span class="k">case</span> <span class="nx">sNORMAL</span><span class="p">:</span>
+			<span class="nx">err</span> <span class="p">=</span> <span class="nx">w</span><span class="p">.</span><span class="nf">sNORMAL</span><span class="p">()</span>
+		<span class="k">case</span> <span class="nx">sLTSIGN</span><span class="p">:</span>
+			<span class="nx">err</span> <span class="p">=</span> <span class="nx">w</span><span class="p">.</span><span class="nf">sLTSIGN</span><span class="p">()</span>
+		<span class="k">case</span> <span class="nx">sTAGNAME</span><span class="p">:</span>
+			<span class="nx">err</span> <span class="p">=</span> <span class="nx">w</span><span class="p">.</span><span class="nf">sTAGNAME</span><span class="p">()</span>
+		<span class="c1">// ...
+</span><span class="c1"></span>		<span class="k">case</span> <span class="nx">sATTRNAME</span><span class="p">:</span>
+			<span class="nx">err</span> <span class="p">=</span> <span class="nx">w</span><span class="p">.</span><span class="nf">sATTRNAME</span><span class="p">()</span>
+		<span class="c1">// ...
+</span><span class="c1"></span>		<span class="k">case</span> <span class="nx">sATTRVAL</span><span class="p">:</span>
+			<span class="nx">err</span> <span class="p">=</span> <span class="nx">w</span><span class="p">.</span><span class="nf">sATTRVAL</span><span class="p">()</span>
+		<span class="k">case</span> <span class="nx">sVALSPACE</span><span class="p">:</span>
+			<span class="nx">err</span> <span class="p">=</span> <span class="nx">w</span><span class="p">.</span><span class="nf">sVALSPACE</span><span class="p">()</span>
+		<span class="k">case</span> <span class="nx">sATTRQVAL</span><span class="p">:</span>
+			<span class="nx">err</span> <span class="p">=</span> <span class="nx">w</span><span class="p">.</span><span class="nf">sATTRQVAL</span><span class="p">()</span>
+		<span class="c1">// ...
+</span><span class="c1"></span>		<span class="k">default</span><span class="p">:</span>
+			<span class="nb">panic</span><span class="p">(</span><span class="s">&#34;unknown state&#34;</span><span class="p">)</span>
+		<span class="p">}</span>
+	<span class="p">}</span>
+
+	<span class="nx">n</span> <span class="p">=</span> <span class="nx">w</span><span class="p">.</span><span class="nx">off</span>
+	<span class="k">return</span>
+<span class="p">}</span>
+</code></pre></div><p>这里有3个状态的处理非常重要，分别为 <code>w.sTAGNAME()</code>、 <code>w.sATTRVAL()</code> 和 <code>w.sATTRQVAL()</code> 。</p>
+<h4 id="wstagname"><code>w.sTAGNAME()</code></h4>
+<p>用于处理标签名，比如 <code>&lt;a&gt;</code> 这种。在完成一个标签的识别后，需要校验这个标签名是否为安全标签，否则干掉。</p>
+<h4 id="wsattrval-和-wsattrqval"><code>w.sATTRVAL()</code> 和 <code>w.sATTRQVAL()</code></h4>
+<p>这两个状态处理函数的作用非常类似，唯一的区别是前者用于处理不带引号的属性值，如<code>&lt;a href=xxx&gt;</code>这种。因此将两者放在一起讨论。</p>
+<p>之所以说这两个状态处理函数非常重要，是因为属性值可能是一个 URL ，<a href="#tags-and-attrs">如上文讨论的 case</a>。 因此，这两个状态处理函数<strong>必须</strong>校验当前属性是否为 URL 属性（URLAttr），如是，则必须调用 URL 校验函数，对该 URL 进行校验，校验失败则不输出。</p>
+<h3 id="可靠性">可靠性</h3>
+<p>可靠性是必须要保证的。因此，这个库补充了若干种测试用例，将测试用例覆盖度提升到了 <a href="https://app.codecov.io/gh/SYM01/htmlsanitizer">96+%</a> 。</p>
+<h2 id="0x03-总结">0x03 总结</h2>
+<p>目前基于 DFA 实现的 HTML 富文本过滤器已经发布 <a href="https://github.com/SYM01/htmlsanitizer">v1.0.1</a> 版本，测试用例覆盖度也足够满足生产环境的使用要求，欢迎找茬、打脸、绕过。</p>
+
+    </div>
+  </article>
+  <script src="https://utteranc.es/client.js"
+        repo="SYM01/sym01.github.io"
+        issue-term="pathname"
+        theme="dark-blue"
+        crossorigin="anonymous"
+        async>
+  </script>
+  </main>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-111333897-1"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'UA-111333897-1');
+    </script>
+    </body>
+</html>

@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="author" content="SYM01" />
     <meta name="description" content="" />
-    <link rel="stylesheet" href="/css/main.min.93883b668818c187ff3f602abce15482c5b62300c188e97c8e93bbacdc262a2c.css" />
+    <link rel="stylesheet" href="/css/main.min.b73fbf13c263460a9b664bb1b2f5d1570dc20408d8dac29fdb0e90bc26483077.css" />
   </head>
   <body>
     <header class="app-header">
@@ -40,33 +40,21 @@
           <a class="tag" href="https://sym01.com/tags/frida/">Frida</a><a class="tag" href="https://sym01.com/tags/ios/">iOS</a></div></div>
     </header>
     <div class="post-content">
-      
-
-<h2 id="0x00-前言">0x00 前言</h2>
-
+      <h2 id="0x00-前言">0x00 前言</h2>
 <p>最近测试的APP里，越来越多的APP采用了加密流量的通信方式，即在原有的HTTP、HTTPS流量之上，又做了一层加密。</p>
-
 <p>要对这些加密过程进行逆向，无疑要耗费大量的工作量，时间可能不允许。因此，可采用一种Hook的方式，将加密前/解密后的流量截获下来。</p>
-
 <h2 id="0x01-原理">0x01 原理</h2>
-
 <p>通过加密流量与远端进行通信，势必会调用响应的加密、解密函数。因此，可通过Frida直接将未加密的流量Hook出来。</p>
-
 <p>然而这样只能查看未加密的流量，不能篡改里边的数据，显然不太实用。因此，我们需要允许用户在流量进行加密/解密时，篡改里边的内容。</p>
-
 <p>实现思路较为简单，如下所示：</p>
-
 <ol>
 <li>Hook加密函数，中断加密过程，将未加密的数据发送到本地搭建的一个服务器，并将HTTP代理设置为Burpsuite的代理</li>
 <li>本地搭建的服务器原封不动地返回请求数据</li>
 <li>Hook点收到服务器返回的数据后，利用服务器返回的数据替换原有数据，并恢复加密函数的执行过程</li>
 <li>重复1、2、3的步骤，Hook掉解密函数</li>
 </ol>
-
 <p>这样一来，Burpsuite就能够发挥其原有的作用，劫持未加密的流量，并对流量内容进行篡改了。</p>
-
 <h2 id="0x02-实现">0x02 实现</h2>
-
 <p>以某APP为例，首先起一个echo服务器线程，专门负责原封不动地返回客户端的请求数据；其次用Frida hook掉相关加解密函数，将未加密的流量通过Burpsuite代理发往echo服务器。相关脚本内容如下：</p>
 <div class="highlight"><pre class="chroma"><code class="language-python" data-lang="python"><span class="ch">#!/usr/bin/env python3</span>
 <span class="c1"># coding: utf-8</span>
@@ -182,14 +170,20 @@
 <span class="n">script</span><span class="o">.</span><span class="n">on</span><span class="p">(</span><span class="s1">&#39;message&#39;</span><span class="p">,</span> <span class="n">on_message</span><span class="p">)</span>
 <span class="n">script</span><span class="o">.</span><span class="n">load</span><span class="p">()</span>
 
-<span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">read</span><span class="p">()</span></code></pre></div>
-<h2 id="0x03-总结">0x03 总结</h2>
-
+<span class="n">sys</span><span class="o">.</span><span class="n">stdin</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+</code></pre></div><h2 id="0x03-总结">0x03 总结</h2>
 <p>套用上面的模板，可以快速地对加密流量的APP进行测试。然而实际应用上的难点在于找到相关加解密的函数，对于Objective-C这类没有明显调用关系的APP更甚。</p>
 
     </div>
   </article>
-</main>
+  <script src="https://utteranc.es/client.js"
+        repo="SYM01/sym01.github.io"
+        issue-term="pathname"
+        theme="dark-blue"
+        crossorigin="anonymous"
+        async>
+  </script>
+  </main>
     <script async src="https://www.googletagmanager.com/gtag/js?id=UA-111333897-1"></script>
     <script>
       window.dataLayer = window.dataLayer || [];

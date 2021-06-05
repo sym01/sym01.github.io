@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>HTML on SYM01&#39;s BLOG</title>
+    <link>https://sym01.com/tags/html/</link>
+    <description>Recent content in HTML on SYM01&#39;s BLOG</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sat, 05 Jun 2021 15:28:52 +0800</lastBuildDate><atom:link href="https://sym01.com/tags/html/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>构建一个安全可靠的 HTML 富文本过滤器</title>
+      <link>https://sym01.com/posts/2021/how-to-make-a-secure-html-filter/</link>
+      <pubDate>Sat, 05 Jun 2021 15:28:52 +0800</pubDate>
+      
+      <guid>https://sym01.com/posts/2021/how-to-make-a-secure-html-filter/</guid>
+      <description>0x00 前言 许久以前接到一个需求，实现一个 HTML 富文本过滤的基础库。这个需求在其它语言实现中有许多久经考验的开源库，比如 NodeJS 有 DOMPurify ，但在 Go 中却异常尴尬，没</description>
+    </item>
+    
+  </channel>
+</rss>
